@@ -1,0 +1,132 @@
+-- ============================================================
+--  Ventas_Tech_DB — Script de Ingeniería de Datos
+--  Proyecto: RetailPro | Curso Data Analytics — Coderhouse
+--  Alumno:   Gastón Butazzi
+--  Entorno:  SQL Server (SSMS 22)
+-- ============================================================
+
+
+-- ============================================================
+-- SECCIÓN 0: Crear y seleccionar la base de datos
+-- ============================================================
+
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'Ventas_Tech_DB')
+    CREATE DATABASE Ventas_Tech_DB;
+GO
+
+USE Ventas_Tech_DB;
+GO
+
+
+-- ============================================================
+-- SECCIÓN 1: DROP TABLES
+-- Orden inverso de dependencias para no violar las FK
+-- ventas → productos → clientes → categorias
+-- ============================================================
+
+IF OBJECT_ID('ventas',    'U') IS NOT NULL DROP TABLE ventas;
+IF OBJECT_ID('productos', 'U') IS NOT NULL DROP TABLE productos;
+IF OBJECT_ID('clientes',  'U') IS NOT NULL DROP TABLE clientes;
+IF OBJECT_ID('categorias','U') IS NOT NULL DROP TABLE categorias;
+GO
+
+
+-- ============================================================
+-- SECCIÓN 2: CREATE TABLES (DDL)
+-- Orden: primero dimensiones, al final la tabla de hechos
+-- ============================================================
+
+-- Tabla: categorias (dimensión base, sin dependencias)
+CREATE TABLE categorias (
+    id_categoria     INT           PRIMARY KEY,
+    nombre_categoria VARCHAR(50)   NOT NULL,
+    descripcion      VARCHAR(200)
+);
+
+-- Tabla: clientes (dimensión, sin dependencias)
+CREATE TABLE clientes (
+    id_cliente      INT           PRIMARY KEY,
+    nombre          VARCHAR(100)  NOT NULL,
+    email           VARCHAR(100)  UNIQUE,
+    ciudad          VARCHAR(50),
+    fecha_registro  DATE          NOT NULL
+);
+
+-- Tabla: productos (referencia a categorias via FK)
+CREATE TABLE productos (
+    id_producto     INT             PRIMARY KEY,
+    nombre_producto VARCHAR(100)    NOT NULL,
+    id_categoria    INT             NOT NULL,
+    precio          DECIMAL(10,2)   NOT NULL,
+    stock           INT             DEFAULT 0,
+    activo          TINYINT         DEFAULT 1,
+    CONSTRAINT fk_productos_categoria
+        FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria)
+);
+
+-- Tabla: ventas (tabla de hechos — referencia clientes y productos)
+CREATE TABLE ventas (
+    id_venta        INT             PRIMARY KEY,
+    id_cliente      INT             NOT NULL,
+    id_producto     INT             NOT NULL,
+    cantidad        INT             NOT NULL,
+    precio_unitario DECIMAL(10,2)   NOT NULL,
+    fecha_venta     DATE            NOT NULL,
+    CONSTRAINT fk_ventas_cliente
+        FOREIGN KEY (id_cliente)  REFERENCES clientes(id_cliente),
+    CONSTRAINT fk_ventas_producto
+        FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
+);
+GO
+
+
+-- ============================================================
+-- SECCIÓN 3: INSERT DATA (DML)
+-- Mismo orden que el CREATE: categorias → clientes → productos → ventas
+-- ============================================================
+
+-- Categorias (4 registros)
+INSERT INTO categorias VALUES (1, 'Computación',    'Laptops, PCs y monitores');
+INSERT INTO categorias VALUES (2, 'Accesorios',     'Periféricos y complementos');
+INSERT INTO categorias VALUES (3, 'Audio',           'Auriculares y parlantes');
+INSERT INTO categorias VALUES (4, 'Almacenamiento', 'Discos y memorias');
+
+-- Clientes (5 registros)
+INSERT INTO clientes VALUES (1, 'María López',  'maria@mail.com',  'Buenos Aires', '2024-01-05');
+INSERT INTO clientes VALUES (2, 'Carlos Ruiz',  'carlos@mail.com', 'Córdoba',      '2024-01-10');
+INSERT INTO clientes VALUES (3, 'Ana Gómez',    'ana@mail.com',    'Rosario',      '2024-02-01');
+INSERT INTO clientes VALUES (4, 'Pedro Sanz',   'pedro@mail.com',  'Mendoza',      '2024-02-15');
+INSERT INTO clientes VALUES (5, 'Laura Torres', 'laura@mail.com',  'Tucumán',      '2024-03-01');
+
+-- Productos (6 registros)
+INSERT INTO productos VALUES (1, 'Laptop Pro 15',      1, 1200.00, 15, 1);
+INSERT INTO productos VALUES (2, 'Mouse Inalámbrico',  2,   28.00, 80, 1);
+INSERT INTO productos VALUES (3, 'Monitor 4K 27"',     1,  450.00, 12, 1);
+INSERT INTO productos VALUES (4, 'Auriculares BT Pro', 3,  120.00, 35, 1);
+INSERT INTO productos VALUES (5, 'SSD Externo 1TB',    4,  130.00, 18, 1);
+INSERT INTO productos VALUES (6, 'Teclado Mecánico',   2,   95.00, 40, 1);
+
+-- Ventas (10 registros)
+INSERT INTO ventas VALUES (1,  1, 1, 2, 1200.00, '2024-03-05');
+INSERT INTO ventas VALUES (2,  2, 2, 5,   28.00, '2024-03-06');
+INSERT INTO ventas VALUES (3,  3, 3, 1,  450.00, '2024-03-07');
+INSERT INTO ventas VALUES (4,  1, 4, 2,  120.00, '2024-03-08');
+INSERT INTO ventas VALUES (5,  4, 5, 3,  130.00, '2024-03-10');
+INSERT INTO ventas VALUES (6,  2, 6, 4,   95.00, '2024-03-11');
+INSERT INTO ventas VALUES (7,  5, 1, 1, 1200.00, '2024-03-12');
+INSERT INTO ventas VALUES (8,  3, 2, 8,   28.00, '2024-03-13');
+INSERT INTO ventas VALUES (9,  4, 4, 1,  120.00, '2024-03-14');
+INSERT INTO ventas VALUES (10, 5, 3, 2,  450.00, '2024-03-15');
+GO
+
+
+-- ============================================================
+-- SECCIÓN 4: VERIFICACIÓN
+-- Confirmá que cada tabla se cargó correctamente
+-- ============================================================
+
+SELECT * FROM categorias;
+SELECT * FROM clientes;
+SELECT * FROM productos;
+SELECT * FROM ventas;
+GO
